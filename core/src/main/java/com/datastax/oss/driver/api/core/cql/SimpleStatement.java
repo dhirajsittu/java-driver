@@ -19,10 +19,9 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
 import com.datastax.oss.driver.api.core.session.Request;
-import com.datastax.oss.driver.internal.core.CqlIdentifiers;
 import com.datastax.oss.driver.internal.core.cql.DefaultSimpleStatement;
-import java.util.Arrays;
-import java.util.Collections;
+import com.datastax.oss.driver.internal.core.util.collection.NullAllowingImmutableList;
+import com.datastax.oss.driver.internal.core.util.collection.NullAllowingImmutableMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,15 +55,15 @@ public interface SimpleStatement extends BatchableStatement<SimpleStatement> {
   static SimpleStatement newInstance(String cqlQuery) {
     return new DefaultSimpleStatement(
         cqlQuery,
-        Collections.emptyList(),
-        Collections.emptyMap(),
+        NullAllowingImmutableList.of(),
+        NullAllowingImmutableMap.of(),
         null,
         null,
         null,
         null,
         null,
         null,
-        Collections.emptyMap(),
+        NullAllowingImmutableMap.of(),
         null,
         false,
         Long.MIN_VALUE,
@@ -78,15 +77,15 @@ public interface SimpleStatement extends BatchableStatement<SimpleStatement> {
   static SimpleStatement newInstance(String cqlQuery, Object... positionalValues) {
     return new DefaultSimpleStatement(
         cqlQuery,
-        Arrays.asList(positionalValues),
-        Collections.emptyMap(),
+        NullAllowingImmutableList.of(positionalValues),
+        NullAllowingImmutableMap.of(),
         null,
         null,
         null,
         null,
         null,
         null,
-        Collections.emptyMap(),
+        NullAllowingImmutableMap.of(),
         null,
         false,
         Long.MIN_VALUE,
@@ -100,15 +99,15 @@ public interface SimpleStatement extends BatchableStatement<SimpleStatement> {
   static SimpleStatement newInstance(String cqlQuery, Map<String, Object> namedValues) {
     return new DefaultSimpleStatement(
         cqlQuery,
-        Collections.emptyList(),
-        CqlIdentifiers.wrapKeys(namedValues),
+        NullAllowingImmutableList.of(),
+        DefaultSimpleStatement.wrapKeys(namedValues),
         null,
         null,
         null,
         null,
         null,
         null,
-        Collections.emptyMap(),
+        NullAllowingImmutableMap.of(),
         null,
         false,
         Long.MIN_VALUE,
@@ -211,6 +210,6 @@ public interface SimpleStatement extends BatchableStatement<SimpleStatement> {
    * converted on the fly with {@link CqlIdentifier#fromCql(String)}.
    */
   default SimpleStatement setNamedValues(Map<String, Object> newNamedValues) {
-    return setNamedValuesWithIds(CqlIdentifiers.wrapKeys(newNamedValues));
+    return setNamedValuesWithIds(DefaultSimpleStatement.wrapKeys(newNamedValues));
   }
 }

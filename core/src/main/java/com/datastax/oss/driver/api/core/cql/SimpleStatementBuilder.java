@@ -17,9 +17,9 @@ package com.datastax.oss.driver.api.core.cql;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.internal.core.cql.DefaultSimpleStatement;
-import java.util.ArrayList;
+import com.datastax.oss.driver.internal.core.util.collection.NullAllowingImmutableList;
+import com.datastax.oss.driver.internal.core.util.collection.NullAllowingImmutableMap;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
@@ -30,8 +30,8 @@ public class SimpleStatementBuilder
 
   private String query;
   private CqlIdentifier keyspace;
-  private final List<Object> positionalValues = new ArrayList<>();
-  private final Map<CqlIdentifier, Object> namedValues = new HashMap<>();
+  private NullAllowingImmutableList.Builder<Object> positionalValuesBuilder;
+  private NullAllowingImmutableMap.Builder<CqlIdentifier, Object> namedValuesBuilder;
 
   public SimpleStatementBuilder(String query) {
     this.query = query;
@@ -46,10 +46,14 @@ public class SimpleStatementBuilder
 
     this.query = template.getQuery();
     if (!template.getPositionalValues().isEmpty()) {
-      this.positionalValues.addAll(template.getPositionalValues());
+      this.positionalValuesBuilder =
+          NullAllowingImmutableList.builder(template.getPositionalValues().size())
+              .addAll(template.getPositionalValues());
     }
     if (!template.getNamedValues().isEmpty()) {
-      this.namedValues.putAll(template.getNamedValues());
+      this.namedValuesBuilder =
+          NullAllowingImmutableMap.<CqlIdentifier, Object>builder(template.getNamedValues().size())
+              .putAll(template.getNamedValues());
     }
   }
 
@@ -75,21 +79,27 @@ public class SimpleStatementBuilder
 
   /** @see SimpleStatement#setPositionalValues(List) */
   public SimpleStatementBuilder addPositionalValue(Object value) {
-    if (!namedValues.isEmpty()) {
+    if (namedValuesBuilder != null) {
       throw new IllegalArgumentException(
           "Can't have both positional and named values in a statement.");
     }
-    positionalValues.add(value);
+    if (positionalValuesBuilder == null) {
+      positionalValuesBuilder = NullAllowingImmutableList.builder();
+    }
+    positionalValuesBuilder.add(value);
     return this;
   }
 
   /** @see SimpleStatement#setPositionalValues(List) */
   public SimpleStatementBuilder addPositionalValues(Iterable<Object> values) {
-    if (!namedValues.isEmpty()) {
+    if (namedValuesBuilder != null) {
       throw new IllegalArgumentException(
           "Can't have both positional and named values in a statement.");
     }
-    values.forEach(positionalValues::add);
+    if (positionalValuesBuilder == null) {
+      positionalValuesBuilder = NullAllowingImmutableList.builder();
+    }
+    positionalValuesBuilder.addAll(values);
     return this;
   }
 
@@ -100,17 +110,20 @@ public class SimpleStatementBuilder
 
   /** @see SimpleStatement#setPositionalValues(List) */
   public SimpleStatementBuilder clearPositionalValues() {
-    positionalValues.clear();
+    positionalValuesBuilder = NullAllowingImmutableList.builder();
     return this;
   }
 
   /** @see SimpleStatement#setNamedValuesWithIds(Map) */
   public SimpleStatementBuilder addNamedValue(CqlIdentifier name, Object value) {
-    if (!positionalValues.isEmpty()) {
+    if (positionalValuesBuilder != null) {
       throw new IllegalArgumentException(
           "Can't have both positional and named values in a statement.");
     }
-    namedValues.put(name, value);
+    if (namedValuesBuilder == null) {
+      namedValuesBuilder = NullAllowingImmutableMap.builder();
+    }
+    namedValuesBuilder.put(name, value);
     return this;
   }
 
@@ -124,7 +137,7 @@ public class SimpleStatementBuilder
 
   /** @see SimpleStatement#setNamedValuesWithIds(Map) */
   public SimpleStatementBuilder clearNamedValues() {
-    namedValues.clear();
+    namedValuesBuilder = NullAllowingImmutableMap.builder();
     return this;
   }
 
@@ -132,8 +145,10 @@ public class SimpleStatementBuilder
   public SimpleStatement build() {
     return new DefaultSimpleStatement(
         query,
-        positionalValues,
-        namedValues,
+        (positionalValuesBuilder == null)
+            ? NullAllowingImmutableList.of()
+            : positionalValuesBuilder.build(),
+        (namedValuesBuilder == null) ? NullAllowingImmutableMap.of() : namedValuesBuilder.build(),
         configProfileName,
         configProfile,
         keyspace,

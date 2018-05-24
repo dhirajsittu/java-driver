@@ -84,6 +84,7 @@ public abstract class CqlPrepareHandlerBase implements Throttled {
   private final ConcurrentMap<ByteBuffer, DefaultPreparedStatement> preparedStatementsCache;
   private final DefaultSession session;
   private final InternalDriverContext context;
+  private final DriverConfigProfile configProfile;
   private final Queue<Node> queryPlan;
   protected final CompletableFuture<PreparedStatement> result;
   private final Message message;
@@ -115,13 +116,12 @@ public abstract class CqlPrepareHandlerBase implements Throttled {
     this.session = session;
     this.context = context;
 
-    DriverConfigProfile configProfile;
     if (request.getConfigProfile() != null) {
-      configProfile = request.getConfigProfile();
+      this.configProfile = request.getConfigProfile();
     } else {
       DriverConfig config = context.config();
       String profileName = request.getConfigProfileName();
-      configProfile =
+      this.configProfile =
           (profileName == null || profileName.isEmpty())
               ? config.getDefaultProfile()
               : config.getProfile(profileName);
@@ -171,6 +171,7 @@ public abstract class CqlPrepareHandlerBase implements Throttled {
           .getMetricUpdater()
           .updateTimer(
               DefaultSessionMetric.THROTTLING_DELAY,
+              configProfile.getName(),
               System.nanoTime() - startTimeNanos,
               TimeUnit.NANOSECONDS);
     }
@@ -340,7 +341,9 @@ public abstract class CqlPrepareHandlerBase implements Throttled {
 
   @Override
   public void onThrottleFailure(RequestThrottlingException error) {
-    session.getMetricUpdater().incrementCounter(DefaultSessionMetric.THROTTLING_ERRORS);
+    session
+        .getMetricUpdater()
+        .incrementCounter(DefaultSessionMetric.THROTTLING_ERRORS, configProfile.getName());
     setFinalError(error);
   }
 

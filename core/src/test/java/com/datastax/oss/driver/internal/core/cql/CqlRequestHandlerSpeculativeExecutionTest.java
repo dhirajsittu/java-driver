@@ -108,7 +108,9 @@ public class CqlRequestHandlerSpeculativeExecutionTest extends CqlRequestHandler
           .isEqualTo(firstExecutionDelay);
       Mockito.verifyNoMoreInteractions(nodeMetricUpdater1);
       firstExecutionTask.run();
-      Mockito.verify(nodeMetricUpdater1).incrementCounter(DefaultNodeMetric.SPECULATIVE_EXECUTIONS);
+      Mockito.verify(nodeMetricUpdater1)
+          .incrementCounter(
+              DefaultNodeMetric.SPECULATIVE_EXECUTIONS, DriverConfigProfile.DEFAULT_NAME);
       node2Behavior.verifyWrite();
       node2Behavior.setWriteSuccess();
 
@@ -118,7 +120,9 @@ public class CqlRequestHandlerSpeculativeExecutionTest extends CqlRequestHandler
           .isEqualTo(secondExecutionDelay);
       Mockito.verifyNoMoreInteractions(nodeMetricUpdater2);
       secondExecutionTask.run();
-      Mockito.verify(nodeMetricUpdater2).incrementCounter(DefaultNodeMetric.SPECULATIVE_EXECUTIONS);
+      Mockito.verify(nodeMetricUpdater2)
+          .incrementCounter(
+              DefaultNodeMetric.SPECULATIVE_EXECUTIONS, DriverConfigProfile.DEFAULT_NAME);
       node3Behavior.verifyWrite();
       node3Behavior.setWriteSuccess();
 
@@ -180,7 +184,11 @@ public class CqlRequestHandlerSpeculativeExecutionTest extends CqlRequestHandler
       node2Behavior.verifyNoWrite();
 
       Mockito.verify(nodeMetricUpdater1)
-          .updateTimer(eq(DefaultNodeMetric.CQL_MESSAGES), anyLong(), eq(TimeUnit.NANOSECONDS));
+          .updateTimer(
+              eq(DefaultNodeMetric.CQL_MESSAGES),
+              eq(DriverConfigProfile.DEFAULT_NAME),
+              anyLong(),
+              eq(TimeUnit.NANOSECONDS));
       Mockito.verifyNoMoreInteractions(nodeMetricUpdater1);
     }
   }
